@@ -1,5 +1,4 @@
-data/
 .vscode/
-*.jpg
-*.pdf
 *__pycache__
+venv
+.DS_Store

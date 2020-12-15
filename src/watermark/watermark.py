@@ -14,6 +14,8 @@ from PIL import Image
 import shutil
 import re
 import uuid
+import time
+import threading
 
 def tryint(s):
     try:
@@ -32,14 +34,25 @@ def sort_nicely(l):
     """
     l.sort(key=alphanum_key)
 
-def watermark(input_pdf, output_pdf, watermark_pdf):
+def watermark(original_pdf, output_pdf, watermark_pdf):
 
+    print("starting worker: {0}".format(threading.get_ident()))
+
+    # intermediary pdf is the pdf doc which will contain
+    # the merging between the original one and watermark
+    tmp_pdf_name = 'intermediary_' + str(uuid.uuid1()) + '_.pdf'
+    tmp_pdf_path = "{0}/{1}".format("/tmp", tmp_pdf_name)
+
+    # jpegs output path - represents the jpegs files 
+    # for each page from the intermediary pdf
+    jpegs_dir = "{0}/{1}_{2}".format("/tmp", "jpegs", str(uuid.uuid1()))
+
+    # watermark pdf is the pdf which will be merged in all pages
     watermark = PdfFileReader(watermark_pdf)
     watermark_page = watermark.getPage(0)
-    intermediar_pdf = 'intermediar_' + str(uuid.uuid1()) + '_.pdf' 
-    outputpath = "jpgs" + '_' + str(uuid.uuid1())
- 
-    pdf = PdfFileReader(input_pdf)
+
+    # build intermediary pdf
+    pdf = PdfFileReader(original_pdf)
     pdf_writer = PdfFileWriter()
  
     for page in range(pdf.getNumPages()):
@@ -47,18 +60,19 @@ def watermark(input_pdf, output_pdf, watermark_pdf):
         pdf_page.mergePage(watermark_page)
         pdf_writer.addPage(pdf_page)
 
- 
-    with open(intermediar_pdf, 'wb') as fh:
+    with open(tmp_pdf_path, 'wb') as fh:
         pdf_writer.write(fh)
-    
-    pdf2jpg.convert_pdf2jpg(intermediar_pdf, outputpath, pages="ALL")
 
-    images_list = [i for i in os.listdir(outputpath + '/'+ intermediar_pdf + '_dir') if i.endswith(".jpg")]
+    # convert each intermediary pdf page to jpeg
+    pdf2jpg.convert_pdf2jpg(tmp_pdf_path, jpegs_dir, pages="ALL")
+
+    # build output pdf from these images
+    images_list = [i for i in os.listdir("{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir")) if i.endswith(".jpg")]
     sort_nicely(images_list)
-    makePdf(output_pdf, images_list, outputpath + '/' + intermediar_pdf + '_dir/')
+    makePdf(output_pdf, images_list, "{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir"))
 
-    os.remove(intermediar_pdf)
-    shutil.rmtree(outputpath)
+    os.remove(tmp_pdf_path)
+    shutil.rmtree(jpegs_dir)
 
 def makePdf(pdfFileName, listPages, dir=''):
     if (dir):
