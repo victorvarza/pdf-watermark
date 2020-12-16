@@ -1,13 +1,11 @@
 from watermark.watermark import watermark
 import concurrent.futures
-import threading
 import optparse
 import shutil
 import os
-import yaml
 
 
-MAX_WORKERS=10
+MAX_WORKERS = 10
 parser = optparse.OptionParser()
 
 
@@ -28,11 +26,11 @@ def init_dir(source, destination):
 def convert_files(source, destination, watermark_file):
     init_dir(source, destination)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool: 
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         for root, _, files in os.walk(source):
             for file in files:
                 dst_file = "{0}/{1}".format(root.replace(source, destination), file)
-                pool.submit(watermark, "{0}/{1}".format(root, file), dst_file.replace('.pdf',''), watermark_file)
+                pool.submit(watermark, "{0}/{1}".format(root, file), dst_file.replace('.pdf', ''), watermark_file)
         pool.shutdown(wait=True)
 
 

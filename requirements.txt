@@ -1,0 +1,5 @@
+PyPDF2
+pdf2jpg
+fpdf
+pyaml
+flake8
