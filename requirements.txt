@@ -1,5 +1,5 @@
-PyPDF2
-pdf2jpg
-fpdf
-pyaml
-flake8
+PyPDF2==3.0.1
+pdf2jpg==1.1
+fpdf==1.7.2
+pyaml==21.10.1
+flake8==6.0.0
