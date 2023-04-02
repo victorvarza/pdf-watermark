@@ -1,4 +1,4 @@
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfWriter, PdfReader
 from pdf2jpg import pdf2jpg
 from fpdf import FPDF
 import os
@@ -45,40 +45,46 @@ def watermark(original_pdf, output_pdf, watermark_pdf):
     tmp_pdf_name = 'intermediary_' + str(uuid.uuid1()) + '_.pdf'
     tmp_pdf_path = "{0}/{1}".format("/tmp", tmp_pdf_name)
     jpegs_dir = "{0}/{1}_{2}".format("/tmp", "jpegs", str(uuid.uuid1()))
-    watermark = PdfFileReader(watermark_pdf)
-    watermark_page = watermark.getPage(0)
-    pdf = PdfFileReader(original_pdf)
-    pdf_writer = PdfFileWriter()
 
-    for page in range(pdf.getNumPages()):
-        pdf_page = pdf.getPage(page)
-        pdf_page.mergePage(watermark_page)
-        pdf_writer.addPage(pdf_page)
+    try:
+        watermark = PdfReader(watermark_pdf)
+        watermark_page = watermark.pages[0]
+        pdf = PdfReader(original_pdf)
+        pdf_writer = PdfWriter()
 
-    with open(tmp_pdf_path, 'wb') as fh:
-        pdf_writer.write(fh)
+        for page in range(len(pdf.pages)):
+            pdf_page = pdf.pages[page]
+            pdf_page.merge_page(watermark_page)
+            pdf_writer.add_page(pdf_page)
 
-    pdf2jpg.convert_pdf2jpg(tmp_pdf_path, jpegs_dir, pages="ALL")
+        with open(tmp_pdf_path, 'wb') as fh:
+            pdf_writer.write(fh)
 
-    images_list = [i for i in os.listdir("{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir")) if i.endswith(".jpg")]
-    sort_nicely(images_list)
-    makePdf(output_pdf, images_list, "{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir"))
+        pdf2jpg.convert_pdf2jpg(tmp_pdf_path, jpegs_dir, pages="ALL")
 
-    os.remove(tmp_pdf_path)
-    shutil.rmtree(jpegs_dir)
+        images_list = [i for i in os.listdir("{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir")) if i.endswith(".jpg")]
+        sort_nicely(images_list)
+        makePdf(output_pdf, images_list, "{0}/{1}_{2}".format(jpegs_dir, tmp_pdf_name, "dir"))
 
+        os.remove(tmp_pdf_path)
+        shutil.rmtree(jpegs_dir)
+    except Exception as e:
+        print(f"Error watermarking file {original_pdf} with {watermark_pdf}. <{e}>")
 
 def makePdf(pdfFileName, listPages, dir=''):
     if (dir):
         dir += "/"
 
-    cover = Image.open(dir + str(listPages[0]))
-    width, height = cover.size
+    try:
+        cover = Image.open(dir + str(listPages[0]))
+        width, height = cover.size
 
-    pdf = FPDF(unit="pt", format=[width, height])
+        pdf = FPDF(unit="pt", format=[width, height])
 
-    for page in listPages:
-        pdf.add_page()
-        pdf.image(dir + str(page), 0, 0)
+        for page in listPages:
+            pdf.add_page()
+            pdf.image(dir + str(page), 0, 0)
 
-    pdf.output(pdfFileName + ".pdf", "F")
+        pdf.output(pdfFileName + ".pdf", "F")
+    except Exception as e:
+        print(f"Error creating pdf {pdfFileName}. <{e}>")
